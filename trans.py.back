@@ -1,0 +1,86 @@
+import paho.mqtt.client as mqtt
+import time
+import RPi.GPIO as gpio
+import serial
+
+bluetooth = serial.Serial('/dev/rfcomm0',9600)
+usb = serial.Serial('/dev/ttyACM0',9600)
+
+gpio.setmode(gpio.BCM)
+
+trig=18
+echo=24
+
+gpio.setup(trig, gpio.OUT)
+gpio.setup(echo, gpio.IN)
+
+islast=0
+
+while 1:
+     
+     try :
+
+          gpio.output(trig, False)
+          time.sleep(0.5)
+                     
+          gpio.output(trig, True)
+          time.sleep(0.5)
+          gpio.output(trig, False)
+                          
+          while gpio.input(echo) == 0 :
+               pulse_start = time.time()
+                          
+          while gpio.input(echo) == 1 :
+               pulse_end = time.time()
+                          
+          pulse_duration = pulse_end - pulse_start
+          distance = pulse_duration * 17000
+          distance = round(distance, 2)
+          
+          import paho.mqtt.client as mqtt
+          mqtt = mqtt.Client("test")
+          
+          if distance <= 100.00:
+              isit=1
+          else:
+              isit=0
+          
+          if islast!=isit:
+              if isit==1:
+                  mqtt.connect("localhost", 1883)
+                  mqtt.publish("isdetected", "detected")
+                  mqtt.loop(2)
+              else:
+                  mqtt.connect("localhost", 1883)
+                  mqtt.publish("isdetected", "notdetected")
+                  mqtt.loop(2)
+              islast=isit
+              
+          bser = bluetooth.readline()
+          user = usb.readline()
+          
+          bdata=bser.split(",")
+          udata=user.split(",")
+          
+          bt="Outdoor "+bdata[0]+"'C"
+          mqtt.connect("localhost", 1883)
+          mqtt.publish("outside/temp", bt)
+          mqtt.loop(2)
+          bh=bdata[1]+"%"
+          mqtt.connect("localhost", 1883)
+          mqtt.publish("outside/humi", bh)
+          mqtt.loop(2)
+          ut="Indoor "+udata[0]+"'C"
+          mqtt.connect("localhost", 1883)
+          mqtt.publish("inside/temp", ut)
+          mqtt.loop(2)
+          uh=udata[1]+"%"
+          mqtt.connect("localhost", 1883)
+          mqtt.publish("inside/humi", uh)
+          mqtt.loop(2)
+          
+                         
+                    
+     except :
+          gpio.cleanup()
+

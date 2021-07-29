@@ -1,0 +1,129 @@
+import time, json, ssl
+import paho.mqtt.client as mqtt
+from datetime import datetime
+
+
+ENDPOINT = 'a3kb109oy8xa3g-ats.iot.us-west-2.amazonaws.com'
+THING_NAME = 'RaspberryPi'
+
+sub1 = 'isdetected'
+sub2 = 'outside/temp'
+sub3 = 'outside/humi'
+sub4 = 'inside/temp'
+sub5 = 'inside/humi'
+sub6 = 'message'
+
+pl2='start up'
+pl3='start up'
+pl4='start up'
+pl5='start up'
+
+def on_connect2(mqttc, obj, flags, rc):
+        if rc == 0:
+                mqttc.subscribe(sub2, qos=0)
+
+def on_message2(mqttc, obj, msg):
+        if msg.topic == sub2:
+                now=datetime.now()
+                nowtime='%s-%s-%s %s:%s' % (now.year, now.month, now.day, now.hour, now.minute)
+                payload2 = msg.payload.decode('utf-8')
+                ct=str(payload2).split(" ")
+                global pl2
+                pl2=ct[1]
+                return pl2
+                #print(ct[1])
+                #payload2 = json.dumps({'outdoor temp': ct[1], 'time':nowtime})
+                #mqtt_awsclient.publish('mirror/ht', payload2, qos=1)
+                #time.sleep(10)
+                
+def on_connect3(mqttc, obj, flags, rc):
+        if rc == 0:
+                mqttc.subscribe(sub3, qos=0)
+
+def on_message3(mqttc, obj, msg):
+        if msg.topic == sub3:
+                now=datetime.now()
+                nowtime='%s-%s-%s %s:%s' % (now.year, now.month, now.day, now.hour, now.minute)
+                payload2 = msg.payload.decode('utf-8')
+                ct=str(payload2)
+                global pl3
+                pl3=ct
+                return pl3
+                #print(ct[1])
+                #payload2 = json.dumps({'outdoor humi': ct, 'time':nowtime})
+                #mqtt_awsclient.publish('mirror/ht', payload2, qos=1)
+                #time.sleep(10)
+                
+def on_connect4(mqttc, obj, flags, rc):
+        if rc == 0:
+                mqttc.subscribe(sub4, qos=0)
+
+def on_message4(mqttc, obj, msg):
+        if msg.topic == sub4:
+                now=datetime.now()
+                nowtime='%s-%s-%s %s:%s' % (now.year, now.month, now.day, now.hour, now.minute)
+                payload2 = msg.payload.decode('utf-8')
+                ct=str(payload2).split(" ")
+                global pl4
+                pl4=ct[1]
+                return pl4
+                #print(ct[1])
+                #payload2 = json.dumps({'indoor temp': ct[1], 'time':nowtime})
+                #mqtt_awsclient.publish('mirror/ht', payload2, qos=1)
+                #time.sleep(10)
+                
+def on_connect5(mqttc, obj, flags, rc):
+        if rc == 0:
+                mqttc.subscribe(sub5, qos=0)
+
+def on_message5(mqttc, obj, msg):
+        if msg.topic == sub5:
+                now=datetime.now()
+                nowtime='%s-%s-%s %s:%s' % (now.year, now.month, now.day, now.hour, now.minute)
+                payload2 = msg.payload.decode('utf-8')
+                ct=str(payload2)
+                global pl5
+                pl5=ct
+                return pl5
+                #print(ct)
+                #payload2 = json.dumps({'indoor humi': ct, 'time':nowtime})
+                #mqtt_awsclient.publish('mirror/ht', payload2, qos=1)
+                #time.sleep(10)
+
+mqtt_awsclient = mqtt.Client(client_id=THING_NAME)
+mqtt_client2 = mqtt.Client("test2")
+mqtt_client2.connect('localhost', port=1883)
+mqtt_client3 = mqtt.Client("test2")
+mqtt_client3.connect('localhost', port=1883)
+mqtt_client4 = mqtt.Client("test2")
+mqtt_client4.connect('localhost', port=1883)
+mqtt_client5 = mqtt.Client("test2")
+mqtt_client5.connect('localhost', port=1883)
+mqtt_client2.on_connect = on_connect2
+mqtt_client2.on_message = on_message2
+mqtt_client3.on_connect = on_connect3
+mqtt_client3.on_message = on_message3
+mqtt_client4.on_connect = on_connect4
+mqtt_client4.on_message = on_message4
+mqtt_client5.on_connect = on_connect5
+mqtt_client5.on_message = on_message5
+mqtt_client2.connect('localhost', port=1883)
+mqtt_client3.connect('localhost', port=1883)
+mqtt_client4.connect('localhost', port=1883)
+mqtt_client5.connect('localhost', port=1883)
+mqtt_client2.loop_start()
+mqtt_client3.loop_start()
+mqtt_client4.loop_start()
+mqtt_client5.loop_start()
+mqtt_awsclient.tls_set('./demo-cert/aws-root-cert.pem', certfile='./demo-cert/iot-cert.pem.crt',
+        keyfile='./demo-cert/private-key.pem.key', tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
+mqtt_awsclient.connect(ENDPOINT, port=8883)
+mqtt_awsclient.loop_start() # threaded network loop
+
+while True:
+    now=datetime.now()
+    nowtime='%s-%s-%s %s:%s' % (now.year, now.month, now.day, now.hour, now.minute)
+    pload=json.dumps({'outdoor temp':pl2, 'outdoor humi':pl3, 'indoor temp':pl4, 'indoor humi':pl5, 'time':nowtime})
+    mqtt_awsclient.publish('mirror/ht', pload, qos=1)
+    time.sleep(60)
+
